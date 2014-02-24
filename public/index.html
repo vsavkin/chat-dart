@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <title>Chat</title>
+  <link rel="stylesheet" href="/css/style.css"></link>
+  <script type="application/dart" src="/chat.dart"></script>
+</head>
+
+<body chat-ctrl>
+
+<h1>Chat</h1>
+<div id="messages">
+  <ul>
+    <li ng-repeat="m in ctrl.chat.messages">
+      {{m["text"]}}
+    </li>
+  </ul>
+</div>
+
+<form ng-submit="ctrl.sendMessage()">
+  <input ng-model="ctrl.message">
+  <button type="submit">Send</button>
+</form>
+</body>
+</html>
