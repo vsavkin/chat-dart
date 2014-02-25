@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Node.JS + Angular.JS vs Dart + Angular.Dart</title>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="http://yandex.st/highlightjs/8.0/styles/default.min.css">
+<script src="http://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<style>
+  pre code {
+    overflow-wrap: normal;
+    white-space: pre;
+  }
+
+  .screeshot {
+    border: 1px solid black;
+    margin: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container-fluid">
+<div class="row">
+  <div class="col-xs-12">
+    <img src="logo.png" style="margin: 70px 10px;">
+    <p>
+      Node.JS rocks when it comes to building I/O-intensive services. It is fast and easy to use. You can do the same in Dart! Out of the box it comes with a set of libraries to access the file system, create http servers, etc. 
+
+      To compare Node and Dart I built two versions of the simpest application imaginable.
+    </p>
+
+
+    <figure>
+      <img src="chat.png" class="screeshot" alt="Screenshot" title="Screenshot">
+    </figure>
+
+    <p>
+      The first version of the application is built using Node.JS, Socket.IO, and Angular.JS. The second version is built using the built in "dart:io" library and Angular.Dart. The versions of the application will be shown side by side. Hopefully, if you are familiar with Node and Angular, you will see that writing applications in Dart is not any harder.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xs-12">
+    <h2>Templates</h2>
+
+    <p>
+      Let's start with comparing templates, since they look almost identical.
+    </p>
+  </div>
+</div>
+<div class="row">
+<div class="col-xs-6">
+<pre><code>
+&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Chat&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;/css/style.css&quot;&gt;&lt;/link&gt;
+    &lt;script src=&quot;/bower_components/angular/angular.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/bower_components/socket.io-client/dist/socket.io.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/js/chat.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+
+  &lt;body ng-app=&quot;chat&quot; ng-controller=&quot;ChatCtrl as ctrl&quot;&gt;
+  &lt;h2&gt;Chat&lt;/h2&gt;
+  &lt;div id=&quot;messages&quot;&gt;
+    &lt;ul&gt;
+      &lt;li ng-repeat=&quot;m in ctrl.chat.messages&quot;&gt;
+        {{m.text}}
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/div&gt;
+
+
+
+  &lt;form ng-submit=&quot;ctrl.sendMessage()&quot;&gt;
+    &lt;input ng-model=&quot;ctrl.message&quot;&gt;
+     &lt;button type=&quot;submit&quot;&gt;Send&lt;/button&gt;
+  &lt;/form&gt;
+
+
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+</div>
+
+<div class="col-xs-6">
+<pre><code>
+&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Chat&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;/css/style.css&quot;&gt;&lt;/link&gt;
+    &lt;script type=&quot;application/dart&quot; src=&quot;/chat.dart&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+
+
+
+  &lt;body chat-ctrl&gt;
+  &lt;h2&gt;Chat&lt;/h2&gt;
+  &lt;div id=&quot;messages&quot;&gt;
+    &lt;ul&gt;
+      &lt;li ng-repeat=&quot;m in ctrl.chat.messages&quot;&gt;
+        {{m[&quot;text&quot;]}}
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/div&gt;
+
+
+
+  &lt;form ng-submit=&quot;ctrl.sendMessage()&quot;&gt;
+    &lt;input ng-model=&quot;ctrl.message&quot;&gt;
+    &lt;button type=&quot;submit&quot;&gt;Send&lt;/button&gt;
+  &lt;/form&gt;
+
+
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+</div>
+</div>
+
+
+
+
+<div class="row">
+  <div class="col-xs-12">
+    <h2>Client Side</h2>
+
+
+    <p>
+      I've tried to keep the code simple, so you can directly compare the Dart and JS versions. There are ways to make both the versions more compact, but it will make the comparison more difficult. At the same time, I wanted it to look idimotic. For instance, it is possible to omit all the type annotations in the Dart version, making it look more like JavaScript, but it goes against the conventions of the Dart community.
+    </p>
+
+    <p>
+      Though there are attempts to port Socket.IO to Dart, none of them seems stable enough. So instead I wrote a very thin wrapper around WebSocket - Socket. If you want to know more about how it works, check out the github repo.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+<div class="col-xs-6">
+<pre><code>
+
+
+
+
+
+
+
+function Chat(){
+  var messages = this.messages = [];
+
+  this.newUser = function(message){
+    addMessage(message.name + " just joined the chat!");
+  };
+
+  this.newMessage = function(message){
+    addMessage(message.name + ": " + message.text);
+  };
+
+  function addMessage(message){
+    messages.push({timestamp: new Date(), text: message});
+  }
+}
+
+angular.module("chat", [])
+
+
+  .controller("ChatCtrl", function(socket, $scope){
+    this.message = "";
+    var chat = this.chat = new Chat();
+
+
+
+
+    socket.on("newMessage", newMessage);
+    socket.on("newUser", newUser);
+
+    function newUser(m){
+      $scope.$apply(function(){
+        chat.newUser(m);
+      });
+    }
+
+    function newMessage(m){
+      $scope.$apply(function(){
+        chat.newMessage(m);
+      });
+    }
+
+
+
+
+    this.sendMessage = function(){
+      chat.newMessage({name: "You", text: this.message});
+      socket.emit("message", {type: "message", text: this.message});
+      this.message = "";
+    };
+  })
+
+
+
+  .value("socket", io.connect());
+
+
+
+
+
+
+</code></pre>
+</div>
+
+
+<div class="col-xs-6">
+<pre><code>
+library chat;
+
+import 'dart:html';
+import 'dart:convert';
+import 'dart:async';
+import 'package:angular/angular.dart';
+
+class Chat {
+  List messages = [];
+
+  void newUser(Map message) =>
+    addMessage("${message["name"]} just joined the chat!");
+
+  void newMessage(Map message) =>
+    addMessage("${message["name"]}: ${message["text"]}");
+
+  addMessage(message) =>
+    messages.add({"timestamp": new DateTime.now(), "text": message});
+}
+
+
+
+
+
+
+@NgController(selector: '[chat-ctrl]', publishAs: 'ctrl')
+class ChatController {
+  @NgTwoWay("message") String message;
+  Chat chat = new Chat();
+  Socket socket;
+
+
+
+  ChatController(this.socket){
+    socket.onMessage.listen(handleMessage);
+  }
+
+  void handleMessage(Map message){
+    final handlers = {"newUser": chat.newUser, 
+      "newMessage": chat.newMessage};
+    handlers[message["type"]](message);
+  }
+
+
+
+
+
+
+
+
+
+  void sendMessage(){
+    chat.newMessage({"name": "You", "text": message});
+    socket.sendMessage({"type": "message", "text": message});
+    message = "";
+  }
+}
+
+
+
+main(){
+  final module = new Module()
+    ..type(ChatController)
+    ..value(Socket, new Socket("ws://127.0.0.1:3001/ws"));
+
+  ngBootstrap(module: module);
+}
+</code></pre>
+</div>
+</div>
+
+
+
+
+<div class="row">
+  <div class="col-xs-12">
+    <h2>Server Side</h2>
+
+    <p>
+      Since there is no Socket.IO for Dart, it is a little bit more work to wire up all the components. 
+    </p>
+
+    <p>
+      Please note the differences in the APIs. All the Dart APIs return futures and streams, whereas Node APIs are callback-based. 
+    </p>
+  </div>
+</div>
+
+<div class="row">
+<div class="col-xs-6">
+<pre><code>
+var http = require("http");
+var fs = require("fs");
+var path = require("path");
+var mime = require("mime");
+var socketio = require("socket.io");
+
+
+var server = http.createServer(serveStatic);
+server.listen(3000);
+chatBackend(server);
+
+
+
+
+
+
+
+
+
+
+
+
+
+function serveStatic(request, response){
+  var absPath = request.url == "/" ? "public/index.html" : "public" + request.url;
+
+  fs.exists(absPath, function(exists){
+    if(exists){
+      sendFile(response, absPath);
+    } else {
+      send404(response);
+    }
+  });
+
+
+
+
+
+
+
+
+
+
+
+  function sendFile(response, filePath){
+    fs.readFile(absPath, function(err, data){
+      if(err){
+        send404(response);
+      } else {
+        response.writeHead(200, {"Content-Type" : mime.lookup(path.basename(filePath))});
+        response.end(data);
+      }
+    });
+  }
+
+  function send404(response){
+    response.writeHead(404, {"Content-Type" : "text/plain"});
+    response.write("Error 404: resource not found.");
+    response.end();
+  }
+}
+
+
+
+
+function chatBackend(server){
+  var io = socketio.listen(server);
+  var users = {};
+
+
+
+
+
+  io.sockets.on('connection', function(socket){
+    registerUser(socket);
+    setUpListener(socket);
+  });
+
+
+
+  function registerUser(socket){
+    var name = "Guest " + (Object.keys(users).length + 1);
+    users[socket.id] = {name: name};
+    socket.join("chat");
+    socket.broadcast.to("chat").emit("newUser", {name: name});
+  }
+
+
+
+  function setUpListener(socket){
+    socket.on("message", function(message){
+      socket.broadcast.to("chat").emit("newMessage", {
+        name: users[socket.id].name,
+        text: message.text
+      });
+    });
+  }
+}
+</code></pre>
+</div>
+
+
+<div class="col-xs-6">
+<pre><code>
+library dartchat;
+
+import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
+import 'package:mime_type/mime_type.dart';
+
+main() =>
+  HttpServer.bind("127.0.0.1", 3001).then((server){
+    final sockets = new WebSockets();
+    final chatBackend = new ChatBackend(sockets);
+    final serveStatic = new ServeStatic();
+
+    server.listen((request) {
+      if(request.uri.path == '/ws')
+        sockets.handleRequest(request);
+      else
+        serveStatic.handleRequest(request);
+    });
+  });
+
+
+
+class ServeStatic {
+  void handleRequest(HttpRequest request){
+    final path = request.uri.path;
+    final file = getFile(path);
+
+    file.exists().then((exists){
+      if(exists){
+        sendFile(request.response, file);
+      } else {
+        render404(request.response);
+      }
+    });
+  }
+
+  getFile(path){
+    final filePath = path == "/" ? "./public/index.html" : "./public${path}";
+    return new File(filePath);
+  }
+
+
+
+  sendFile(HttpResponse response, File file){
+    response.headers.set('Content-Type', mime(file.path));
+    file.openRead().pipe(response).catchError((_) => render404(response));
+  }
+
+
+
+
+
+
+
+  render404(HttpResponse response){
+    response.statusCode = HttpStatus.NOT_FOUND;
+    response.write("Error 404: resource not found.");
+    response.close();
+  }
+}
+
+
+
+
+class ChatBackend {
+  WebSockets sockets;
+  Map users = {};
+
+  ChatBackend(this.sockets){
+    sockets.onNewConnection.listen(onNewConnection);;
+  }
+
+  void onNewConnection(conn){
+    registerGuest(conn);
+    setUpListener(conn);
+  }
+
+
+
+  registerGuest(conn){
+    var name = "Guest ${users.length + 1}";
+    users[conn] = {"name": name};
+    sockets.broadcast(conn, {"type" : "newUser", "name" : name});
+  }
+
+
+
+
+  setUpListener(conn){
+    sockets.onMessage(conn).listen((m){
+      if(m["type"] == "message"){
+        sockets.broadcast(conn, {"type" : "newMessage", "name" : users[conn]["name"], "text" : m["text"]});
+      }
+    });
+  }
+}
+
+</code></pre>
+</div>
+</div>
+
+<div class="row">
+  <div class="col-xs-12">
+    <h2>Wrapping Up</h2>
+
+    <p>
+      I showed:
+
+      <ul>
+        <li>How to build a simple server using Node and Dart.</li>
+        <li>How to build a client in Angular.JS and Angular.Dart.</li>
+        <li>How to use WebSocket to communicate between the sever and the client.</li>
+        <li>How to wire everything up.</li>
+      </ul>
+    </p>
+
+    <p>
+      If you want to know more, check out the following repositories.
+    </p>
+
+    <ul>
+      <li><a href="https://github.com/vsavkin/chat-dart">Dart Version</a></li>
+      <li><a href="https://github.com/vsavkin/chat-node">JS Version</a></li>
+    </ul>
+  </div>
+</div>
+
+
+</div>
+
+</body>
+</html>
