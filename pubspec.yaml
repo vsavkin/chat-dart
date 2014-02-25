@@ -1,3 +1,3 @@
 name: DartChat
 dependencies:
-  mime_type: any
+  http_server: any

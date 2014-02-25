@@ -7,8 +7,8 @@ import 'package:angular/angular.dart';
 
 main(){
   final module = new Module()
-    ..type(ChatController)
-    ..value(Socket, new Socket("ws://127.0.0.1:3001/ws"));
+      ..type(ChatController)
+      ..value(Socket, new Socket("ws://127.0.0.1:3001/ws"));
 
   ngBootstrap(module: module);
 }
@@ -23,7 +23,7 @@ class Chat {
   addMessage("${message["name"]}: ${message["text"]}");
 
   addMessage(message) =>
-  messages.add({"timestamp": new DateTime.now(), "text": message});
+      messages.add({"timestamp": new DateTime.now(), "text": message});
 }
 
 
@@ -61,9 +61,7 @@ class Socket {
   }
 
   Stream<Map> get onMessage =>
-  webSocket.onMessage.
-  map((_) => _.data).
-  map(JSON.decode);
+      webSocket.onMessage.map((m) => m.data).map(JSON.decode);
 
   void sendMessage(Map message) => webSocket.sendString(JSON.encode(message));
 }
