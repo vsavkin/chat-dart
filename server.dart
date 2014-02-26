@@ -3,7 +3,6 @@ library dartchat;
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:mime_type/mime_type.dart';
 import 'package:http_server/http_server.dart' show VirtualDirectory;
 
 final HOST = "127.0.0.1";
