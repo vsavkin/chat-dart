@@ -26,7 +26,7 @@
   <div class="col-xs-12">
     <img src="logo.png" style="margin: 70px 10px;">
     <p>
-      Node.JS rocks when it comes to building I/O-intensive services. It is fast and easy to use. You can do the same in Dart! Out of the box it comes with a set of libraries to access the file system, create http servers, etc. 
+      Node.JS rocks when it comes to building I/O-intensive services. It is fast and easy to use. You can do the same in Dart! Out of the box it comes with a set of libraries to access the file system, create http servers, etc.
 
       To compare Node and Dart I built two versions of the simplest application imaginable.
     </p>
@@ -170,12 +170,14 @@ function Chat(){
 angular.module("chat", [])
 
 
+
+
+
+
+
   .controller("ChatCtrl", function(socket, $scope){
     this.message = "";
     var chat = this.chat = new Chat();
-
-
-
 
     socket.on("newMessage", newMessage);
     socket.on("newUser", newUser);
@@ -192,9 +194,6 @@ angular.module("chat", [])
       });
     }
 
-
-
-
     this.sendMessage = function(){
       chat.newMessage({name: "You", text: this.message});
       socket.emit("message", {type: "message", text: this.message});
@@ -202,15 +201,7 @@ angular.module("chat", [])
     };
   })
 
-
-
   .value("socket", io.connect());
-
-
-
-
-
-
 </code></pre>
 </div>
 
@@ -228,42 +219,41 @@ class Chat {
   List messages = [];
 
   void newUser(Map message) =>
-    addMessage("${message["name"]} just joined the chat!");
+  addMessage("${message["name"]} just joined the chat!");
 
   void newMessage(Map message) =>
-    addMessage("${message["name"]}: ${message["text"]}");
+  addMessage("${message["name"]}: ${message["text"]}");
 
   addMessage(message) =>
-    messages.add({"timestamp": new DateTime.now(), "text": message});
+      messages.add({"timestamp": new DateTime.now(), "text": message});
 }
 
 
 
 
+main(){
+  final module = new Module()
+      ..type(ChatController)
+      ..value(Socket, new Socket("ws://127.0.0.1:3001/ws"));
 
+  ngBootstrap(module: module);
+}
 
 @NgController(selector: '[chat-ctrl]', publishAs: 'ctrl')
 class ChatController {
   @NgTwoWay("message") String message;
+
   Chat chat = new Chat();
   Socket socket;
-
-
 
   ChatController(this.socket){
     socket.onMessage.listen(handleMessage);
   }
 
   void handleMessage(Map message){
-    final handlers = {"newUser": chat.newUser, 
-      "newMessage": chat.newMessage};
+    final handlers = {"newUser": chat.newUser, "newMessage": chat.newMessage};
     handlers[message["type"]](message);
   }
-
-
-
-
-
 
 
 
@@ -276,14 +266,6 @@ class ChatController {
 }
 
 
-
-main(){
-  final module = new Module()
-    ..type(ChatController)
-    ..value(Socket, new Socket("ws://127.0.0.1:3001/ws"));
-
-  ngBootstrap(module: module);
-}
 </code></pre>
 </div>
 </div>
@@ -296,11 +278,11 @@ main(){
     <h2>Server Side</h2>
 
     <p>
-      Since there is no Socket.IO for Dart, it is a little bit more work to wire up all the components. 
+      Since there is no Socket.IO for Dart, it is a little bit more work to wire up all the components.
     </p>
 
     <p>
-      Please note the differences in the APIs. All the Dart APIs return futures and streams, whereas Node APIs are callback-based. 
+      Please note the differences in the APIs. All the Dart APIs return futures and streams, whereas Node APIs are callback-based.
     </p>
   </div>
 </div>
@@ -308,6 +290,8 @@ main(){
 <div class="row">
 <div class="col-xs-6">
 <pre><code>
+
+
 var http = require("http");
 var fs = require("fs");
 var path = require("path");
@@ -315,21 +299,10 @@ var mime = require("mime");
 var socketio = require("socket.io");
 
 
+
 var server = http.createServer(serveStatic);
 server.listen(3000);
 chatBackend(server);
-
-
-
-
-
-
-
-
-
-
-
-
 
 function serveStatic(request, response){
   var absPath = request.url == "/" ? "public/index.html" : "public" + request.url;
@@ -341,16 +314,6 @@ function serveStatic(request, response){
       send404(response);
     }
   });
-
-
-
-
-
-
-
-
-
-
 
   function sendFile(response, filePath){
     fs.readFile(absPath, function(err, data){
@@ -370,9 +333,6 @@ function serveStatic(request, response){
   }
 }
 
-
-
-
 function chatBackend(server){
   var io = socketio.listen(server);
   var users = {};
@@ -386,16 +346,12 @@ function chatBackend(server){
     setUpListener(socket);
   });
 
-
-
   function registerUser(socket){
     var name = "Guest " + (Object.keys(users).length + 1);
     users[socket.id] = {name: name};
     socket.join("chat");
     socket.broadcast.to("chat").emit("newUser", {name: name});
   }
-
-
 
   function setUpListener(socket){
     socket.on("message", function(message){
@@ -406,6 +362,10 @@ function chatBackend(server){
     });
   }
 }
+
+
+
+
 </code></pre>
 </div>
 
@@ -417,69 +377,48 @@ library dartchat;
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:mime_type/mime_type.dart';
+import 'package:http_server/http_server.dart' show VirtualDirectory;
 
-main() =>
-  HttpServer.bind("127.0.0.1", 3001).then((server){
+final HOST = "127.0.0.1";
+final PORT = 3001;
+
+main() {
+  HttpServer.bind(HOST, PORT).then((server){
     final sockets = new WebSockets();
     final chatBackend = new ChatBackend(sockets);
-    final serveStatic = new ServeStatic();
+    var root = Platform.script.resolve('./public').toFilePath();
+    final vDir = new VirtualDirectory(root)
+        ..followLinks = true
+        ..allowDirectoryListing = true
+        ..jailRoot = false;
 
     server.listen((request) {
-      if(request.uri.path == '/ws')
+      if(request.uri.path == '/ws') {
         sockets.handleRequest(request);
-      else
-        serveStatic.handleRequest(request);
+      } else {
+        vDir.serveRequest(request);
+      }
+
     });
   });
-
-
-
-class ServeStatic {
-  void handleRequest(HttpRequest request){
-    final path = request.uri.path;
-    final file = getFile(path);
-
-    file.exists().then((exists){
-      if(exists){
-        sendFile(request.response, file);
-      } else {
-        render404(request.response);
-      }
-    });
-  }
-
-  getFile(path){
-    final filePath = path == "/" ? "./public/index.html" : "./public${path}";
-    return new File(filePath);
-  }
-
-
-
-  sendFile(HttpResponse response, File file){
-    response.headers.set('Content-Type', mime(file.path));
-    file.openRead().pipe(response).catchError((_) => render404(response));
-  }
-
-
-
-
-
-
-
-  render404(HttpResponse response){
-    response.statusCode = HttpStatus.NOT_FOUND;
-    response.write("Error 404: resource not found.");
-    response.close();
-  }
 }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
 class ChatBackend {
-  WebSockets sockets;
-  Map users = {};
+  final WebSockets sockets;
+  final Map users = {};
 
   ChatBackend(this.sockets){
     sockets.onNewConnection.listen(onNewConnection);;
@@ -490,8 +429,6 @@ class ChatBackend {
     setUpListener(conn);
   }
 
-
-
   registerGuest(conn){
     var name = "Guest ${users.length + 1}";
     users[conn] = {"name": name};
@@ -499,17 +436,18 @@ class ChatBackend {
   }
 
 
-
-
   setUpListener(conn){
     sockets.onMessage(conn).listen((m){
       if(m["type"] == "message"){
-        sockets.broadcast(conn, {"type" : "newMessage", "name" : users[conn]["name"], "text" : m["text"]});
+        sockets.broadcast(conn, {
+            "type" : "newMessage",
+            "name" : users[conn]["name"],
+            "text" : m["text"]
+        });
       }
     });
   }
 }
-
 </code></pre>
 </div>
 </div>
